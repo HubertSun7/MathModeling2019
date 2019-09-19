@@ -2,6 +2,7 @@
 
 from dataload import dataset_load
 import util
+from plot import plot
 from question1 import question1
 from question2 import question2
 from question3 import question3
@@ -15,6 +16,8 @@ if __name__ == '__main__':
     else:  # args.dataset == 2
         q1_av_param = dict(alpha1=20, alpha2=10, beta1=15, beta2=20,theta=20, delta=0.001)
         p_start, p_end, p_rect = dataset_load('../data/dataset2.xlsx', 'data2')
+
+    plot(p_start, p_end, p_rect)
 
     if args.question == 1:
         question1(p_start, p_end, p_rect, q1_av_param)
