@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import time
 from dataload import dataset_load
 import util
 from plot import plot
@@ -19,6 +20,7 @@ if __name__ == '__main__':
 
     plot(p_start, p_end, p_rect)
 
+    t_start = time.time()
     if args.question == 1:
         question1(p_start, p_end, p_rect, q1_av_param)
     elif args.question == 2:
@@ -27,5 +29,6 @@ if __name__ == '__main__':
         fail_rate = 0.8
         err_threshold = 5
         question3(p_start, p_end, p_rect, fail_rate, err_threshold)
+    t_end = time.time()
 
-    print('*I* Computation complete ... Exit')
+    print('*I* Computation takes %.3f sec ... Exit' % (t_end - t_start))
