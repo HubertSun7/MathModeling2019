@@ -30,7 +30,7 @@ def question1(p_start, p_end, p_rect, av_param, a_star_factor, w1, w2):
     print("Matrix Build Time : " + str(matrix_build_time - start_time) + " s")
 
     #Get the path
-    path = common.aStar(start, grid, av_param, a_star_factor, w1, w2, 0, False, distance_matrix)
+    path = common.aStar(start, grid, av_param, a_star_factor, w1, w2, 0, False, distance_matrix, False)
 
     end_time = time.time()
     elapsed_time = end_time - start_time

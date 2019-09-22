@@ -18,13 +18,13 @@ if __name__ == '__main__':
         av_param = dict(alpha1=20, alpha2=10, beta1=15, beta2=20,theta=20, delta=0.001)
         p_start, p_end, p_rect = dataset_load('../data/dataset2.xlsx', 'data2')
 
-    plot(p_start, p_end, p_rect, save='../out/raw_d%d.png' % args.dataset)
+    #plot(p_start, p_end, p_rect, save='../out/raw_d%d.png' % args.dataset)
 
     t_start = time.time()
     if args.question == 1:
         path = question1(p_start, p_end, p_rect, av_param, args.w_astar, args.w1, args.w2)
     elif args.question == 2:
-        path = question2(p_start, p_end, p_rect, av_param)
+        path = question2(p_start, p_end, p_rect, av_param, args.w_astar, args.w1, args.w2)
     else:  # args.question == 3
         path = question3(p_start, p_end, p_rect, av_param, args.w_astar, args.w1, args.w2, args.w3)
     t_end = time.time()

@@ -29,7 +29,7 @@ def question3(p_start, p_end, p_rect, av_param, a_star_factor, w1, w2, w3):
     print("Matrix Build Time : " + str(matrix_build_time - start_time) + " s")
 
     # Get the path
-    path = common.aStar(start, grid, av_param, a_star_factor, w1, w2, w3, True, distance_matrix)
+    path = common.aStar(start, grid, av_param, a_star_factor, w1, w2, w3, True, distance_matrix, False)
 
     common.check_path_available(path, av_param)
 

@@ -2,6 +2,7 @@ import numpy as np
 from enum import Enum
 import math
 import time
+import heapq
 
 # 矫正点概率
 p_rect_success = 0.8
@@ -21,8 +22,8 @@ class Label:
         self.n = n                    #与起始点的点数距离
         self.e = e                    #终点距离预测值
         self.f_list = []              #到达时的误差list [(概率 : 到达燃料 (f_h, f_v))]
-#       self.f_h = f_h                  #到达时水平误差
-#       self.f_v = f_v                  #到达时垂直误差
+                                      # f_h : 到达时的水平误差
+                                      # f_v : 到达时的垂直误差
         self.cl = cl                  #当前位置
         self.prev = prev              #前驱标签
         self.num_prev = num_prev      #前驱结点标签数
@@ -34,6 +35,13 @@ class Label:
 
         self.s_p = sum([f_i[0] for f_i in self.f_list])  # 成功到达当前结点的概率
 
+        self.cost = None                #Label 的 cost
+
+    def set_cost(self, cost):
+        self.cost = cost
+
+    def __lt__(self, other):
+        return self.cost < other.cost
 
 class Loc:
     def __init__(self, point, goal, isFailPoint, type=None):
@@ -52,8 +60,13 @@ class Loc:
         self.isFailPoint =  isFailPoint       #当前结点是否会发生失败的情况
 
 
-def cal_distance(point, point2, distance_matrix):
-    return distance_matrix[(point, point2)]
+def cal_distance(point, point2, distance_matrix, prev_point, useCurve):
+    return_value = None
+    if (useCurve):
+        return_value = distance_matrix[(prev_point, point, point2)]
+    else:
+        return_value = distance_matrix[(point, point2)]
+    return return_value
 
 def manhattan(point, point2):
     return abs(point[0] - point2[0]) +\
@@ -81,7 +94,7 @@ def back_trace_idx(label):
     return path_idx
 
 
-def error_in_next_node(f_h, f_v, current_loc, next_loc, delta, p, considerP, distance_matrix):
+def error_in_next_node(f_h, f_v, current_loc, next_loc, delta, p, considerP, distance_matrix, prev_loc, useCurve):
     # 格式：[概率 : 到达误差 (error_hori, error_vert)]
     err_dict = []
 
@@ -90,7 +103,7 @@ def error_in_next_node(f_h, f_v, current_loc, next_loc, delta, p, considerP, dis
     else:
         p_success = 1.0
 
-    err_dis = cal_distance(current_loc, next_loc, distance_matrix) * delta
+    err_dis = cal_distance(current_loc, next_loc, distance_matrix, prev_loc ,useCurve) * delta
     if current_loc.rectVert == NodeType.Vertical:
         error_hori = f_h + err_dis
         error_vert = err_dis
@@ -115,7 +128,7 @@ def error_in_next_node(f_h, f_v, current_loc, next_loc, delta, p, considerP, dis
     return err_dict
 
 
-def find_neighbours(label, grid, paras, considerP, distance_matrix):
+def find_neighbours(label, grid, paras, considerP, distance_matrix, useCurve):
     links = []
     for p in grid:
 
@@ -127,7 +140,9 @@ def find_neighbours(label, grid, paras, considerP, distance_matrix):
         for (p_f, f) in label.f_list:
             f_h = f[0]
             f_v = f[1]
-            error_list = error_in_next_node(f_h, f_v, label.cl, p, paras['delta'], p_f, considerP, distance_matrix)
+            prev_loc = None if label.cl.rectVert == NodeType.Start else label.prev.cl
+            error_list = error_in_next_node(f_h, f_v, label.cl, p, paras['delta'], p_f,
+                                            considerP, distance_matrix, prev_loc, useCurve)
 
             for (p_el, err_el) in error_list:
                 error_hori = err_el[0]
@@ -143,7 +158,7 @@ def find_neighbours(label, grid, paras, considerP, distance_matrix):
     return links
 
 
-def aStar(start, grid, paras, a_star_factor, w1, w2, w3, considerP, distance_matrix):
+def aStar(start, grid, paras, a_star_factor, w1, w2, w3, considerP, distance_matrix, useCurve):
 
     # For temporary Print
     start_time = time.time()
@@ -153,10 +168,13 @@ def aStar(start, grid, paras, a_star_factor, w1, w2, w3, considerP, distance_mat
     # Algorithm Begin
     target_reached = False
 
-    openset = set()
+    openset = []
 
     current_label = Label(0, 0, start.sp, [(1.0, (0.0, 0.0))], start, None, None, 1)
+    cost = (w1 * current_label.d + w2 * current_label.n + w3 / current_label.s_p) + a_star_factor * current_label.e
+    current_label.set_cost(cost)
     start.num_label += 1
+
 
     # For Debug Use
     # debug_point = 0
@@ -165,19 +183,21 @@ def aStar(start, grid, paras, a_star_factor, w1, w2, w3, considerP, distance_mat
     while target_reached is False:
 
         # 1. Find all the neighbour locations of current location
-        children = find_neighbours(current_label, grid, paras, considerP, distance_matrix)
+        children = find_neighbours(current_label, grid, paras, considerP, distance_matrix, useCurve)
 
         # 2. Decide if add labels to these neighbour locations
         for child in children:
 
-            dis = cal_distance(child, current_label.cl, distance_matrix)
+            prev_loc = None if current_label.cl.rectVert == NodeType.Start else current_label.prev.cl
+            dis = cal_distance(child, current_label.cl, distance_matrix, prev_loc, useCurve)
 
+            prev_loc = None if current_label.cl.rectVert == NodeType.Start else current_label.prev.cl
             child_f_cell = []
             for (p, f) in current_label.f_list:
                 f_h = f[0]
                 f_v = f[1]
                 error_list = error_in_next_node(f_h, f_v, current_label.cl,
-                                                child, paras['delta'], p, considerP, distance_matrix)
+                                                child, paras['delta'], p, considerP, distance_matrix, prev_loc, useCurve)
                 for (p_el, err_el) in error_list:
                     error_hori = err_el[0]
                     error_vert = err_el[1]
@@ -192,28 +212,36 @@ def aStar(start, grid, paras, a_star_factor, w1, w2, w3, considerP, distance_mat
             if child.rectVert == NodeType.Start:
                 continue
             elif child.rectVert == NodeType.Goal:
-                openset.add(Label(current_label.d + dis, current_label.n + 1,
-                                  0.0, child_f_cell, child,
-                                  current_label, current_label.cl.num_label,
-                                  child.num_label + 1))
-
+                c_L = Label(current_label.d + dis, current_label.n + 1,
+                            0.0, child_f_cell, child,
+                            current_label, current_label.cl.num_label,
+                            child.num_label + 1)
+                cost = (w1 * c_L.d + w2 * c_L.n + w3 / c_L.s_p) + a_star_factor * c_L.e
+                c_L.set_cost(cost)
+                heapq.heappush(openset, c_L)
                 child.num_label += 1
                 debug_openset.append(child.idx)
                 break
             elif child.rectVert == NodeType.Vertical:
                 if len(child_f_cell) != 0:
-                    openset.add(Label(current_label.d + dis, current_label.n + 1,
-                                      child.sp, child_f_cell, child,
-                                      current_label, current_label.cl.num_label,
-                                      child.num_label+1))
+                    c_L = Label(current_label.d + dis, current_label.n + 1,
+                                child.sp, child_f_cell, child,
+                                current_label, current_label.cl.num_label,
+                                child.num_label + 1)
                     child.num_label += 1
+                    cost = (w1 * c_L.d + w2 * c_L.n + w3 / c_L.s_p) + a_star_factor * c_L.e
+                    c_L.set_cost(cost)
+                    heapq.heappush(openset, c_L)
                     debug_openset.append(child.idx)
             elif child.rectVert == NodeType.Horizontal:
                 if len(child_f_cell) != 0:
-                    openset.add(Label(current_label.d + dis, current_label.n + 1,
+                    c_L = Label(current_label.d + dis, current_label.n + 1,
                                       child.sp, child_f_cell, child,
                                       current_label, current_label.cl.num_label,
-                                      child.num_label+1))
+                                      child.num_label+1)
+                    cost = (w1*c_L.d + w2*c_L.n + w3/c_L.s_p) + a_star_factor * c_L.e
+                    c_L.set_cost(cost)
+                    heapq.heappush(openset, c_L)
                     child.num_label += 1
                     debug_openset.append(child.idx)
 
@@ -224,8 +252,7 @@ def aStar(start, grid, paras, a_star_factor, w1, w2, w3, considerP, distance_mat
         # Cost Function = G(n) + H(n)
         # G(n) = (w1 * distance + w2 + w3 / possibility)
         # H(n) = a_start_factor * estimated_cost
-        current_label = min(openset, key=lambda o: (w1*o.d + w2*o.n + w3/o.s_p) + a_star_factor * o.e)
-        openset.remove(current_label)
+        current_label = heapq.heappop(openset)
 
         # Temporary Print
         internal_time = time.time()
