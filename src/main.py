@@ -18,13 +18,13 @@ if __name__ == '__main__':
         q1_av_param = dict(alpha1=20, alpha2=10, beta1=15, beta2=20,theta=20, delta=0.001)
         p_start, p_end, p_rect = dataset_load('../data/dataset2.xlsx', 'data2')
 
-    plot(p_start, p_end, p_rect)
+    #plot(p_start, p_end, p_rect)
 
     t_start = time.time()
     if args.question == 1:
-        question1(p_start, p_end, p_rect, q1_av_param)
+        question1(p_start, p_end, p_rect, q1_av_param, args.a_star_factor, args.w1, args.w2)
     elif args.question == 2:
-        question2(p_start, p_end, p_rect)
+        question2(p_start, p_end, p_rect, q1_av_param, args.a_star_factor, args.w1, args.w2, args.w3)
     else:  # args.question == 3
         fail_rate = 0.8
         err_threshold = 5
