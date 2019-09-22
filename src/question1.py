@@ -81,6 +81,4 @@ def question1(p_start, p_end, p_rect, av_param, a_star_factor, w1, w2):
     print("\n\nElasped Time : " + str(elapsed_hour) + " h  " + str(elapsed_min) + " m  " + \
           str(elapsed_time) + " s  " + "\t Total Seconds : " + str(elapsed_sum) + " s ")
 
-
-
-
+    return path
