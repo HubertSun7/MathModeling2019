@@ -3,6 +3,7 @@ from enum import Enum
 import math
 import time
 import heapq
+import curves
 
 # 矫正点概率
 p_rect_success = 0.8
@@ -60,12 +61,15 @@ class Loc:
         self.isFailPoint =  isFailPoint       #当前结点是否会发生失败的情况
 
 
-def cal_distance(point, point2, distance_matrix, prev_point, useCurve):
+def cal_distance(point, point2, prev_point, useCurve):
     return_value = None
     if (useCurve):
-        return_value = distance_matrix[(prev_point, point, point2)]
+        if prev_point == None:
+            return_value = np.linalg.norm(point.pos - point2.pos)
+        else:
+            return_value = curves.computeDistance(prev_point, point, point2)
     else:
-        return_value = distance_matrix[(point, point2)]
+        return_value = np.linalg.norm(point.pos - point2.pos)
     return return_value
 
 def manhattan(point, point2):
@@ -94,7 +98,7 @@ def back_trace_idx(label):
     return path_idx
 
 
-def error_in_next_node(f_h, f_v, current_loc, next_loc, delta, p, considerP, distance_matrix, prev_loc, useCurve):
+def error_in_next_node(f_h, f_v, current_loc, next_loc, delta, p, considerP, prev_loc, useCurve):
     # 格式：[概率 : 到达误差 (error_hori, error_vert)]
     err_dict = []
 
@@ -103,7 +107,7 @@ def error_in_next_node(f_h, f_v, current_loc, next_loc, delta, p, considerP, dis
     else:
         p_success = 1.0
 
-    err_dis = cal_distance(current_loc, next_loc, distance_matrix, prev_loc ,useCurve) * delta
+    err_dis = cal_distance(current_loc, next_loc, prev_loc, useCurve) * delta
     if current_loc.rectVert == NodeType.Vertical:
         error_hori = f_h + err_dis
         error_vert = err_dis
@@ -128,7 +132,7 @@ def error_in_next_node(f_h, f_v, current_loc, next_loc, delta, p, considerP, dis
     return err_dict
 
 
-def find_neighbours(label, grid, paras, considerP, distance_matrix, useCurve):
+def find_neighbours(label, grid, paras, considerP, useCurve):
     links = []
     for p in grid:
 
@@ -142,7 +146,7 @@ def find_neighbours(label, grid, paras, considerP, distance_matrix, useCurve):
             f_v = f[1]
             prev_loc = None if label.cl.rectVert == NodeType.Start else label.prev.cl
             error_list = error_in_next_node(f_h, f_v, label.cl, p, paras['delta'], p_f,
-                                            considerP, distance_matrix, prev_loc, useCurve)
+                                            considerP, prev_loc, useCurve)
 
             for (p_el, err_el) in error_list:
                 error_hori = err_el[0]
@@ -158,7 +162,7 @@ def find_neighbours(label, grid, paras, considerP, distance_matrix, useCurve):
     return links
 
 
-def aStar(start, grid, paras, a_star_factor, w1, w2, w3, considerP, distance_matrix, useCurve):
+def aStar(start, grid, paras, a_star_factor, w1, w2, w3, considerP, useCurve):
 
     # For temporary Print
     start_time = time.time()
@@ -183,13 +187,13 @@ def aStar(start, grid, paras, a_star_factor, w1, w2, w3, considerP, distance_mat
     while target_reached is False:
 
         # 1. Find all the neighbour locations of current location
-        children = find_neighbours(current_label, grid, paras, considerP, distance_matrix, useCurve)
+        children = find_neighbours(current_label, grid, paras, considerP, useCurve)
 
         # 2. Decide if add labels to these neighbour locations
         for child in children:
 
             prev_loc = None if current_label.cl.rectVert == NodeType.Start else current_label.prev.cl
-            dis = cal_distance(child, current_label.cl, distance_matrix, prev_loc, useCurve)
+            dis = cal_distance(child, current_label.cl, prev_loc, useCurve)
 
             prev_loc = None if current_label.cl.rectVert == NodeType.Start else current_label.prev.cl
             child_f_cell = []
@@ -197,7 +201,7 @@ def aStar(start, grid, paras, a_star_factor, w1, w2, w3, considerP, distance_mat
                 f_h = f[0]
                 f_v = f[1]
                 error_list = error_in_next_node(f_h, f_v, current_label.cl,
-                                                child, paras['delta'], p, considerP, distance_matrix, prev_loc, useCurve)
+                                                child, paras['delta'], p, considerP, prev_loc, useCurve)
                 for (p_el, err_el) in error_list:
                     error_hori = err_el[0]
                     error_vert = err_el[1]
