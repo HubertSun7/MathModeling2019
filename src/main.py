@@ -29,6 +29,6 @@ if __name__ == '__main__':
         path = question3(p_start, p_end, p_rect, av_param, args.w_astar, args.w1, args.w2, args.w3)
     t_end = time.time()
 
-    plot(p_start, p_end, p_rect, path=path, show=True, save='../out/result_d%d.png' % args.dataset)
+    plot(p_start, p_end, p_rect, args.question, path=path, show=True, save='../out/result_d%d.png' % args.dataset)
 
     print('*I* Computation takes %.3f sec ... Exit' % (t_end - t_start))

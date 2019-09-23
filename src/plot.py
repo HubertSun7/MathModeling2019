@@ -3,9 +3,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from pathDataGen import *
+from curves import *
 
 
-def plot(p_start, p_end, p_rect, path=None, show=False, save=''):
+def linePathGen(p0, p1):
+    zline = np.arange(p0[2], p1[2], (p1[2] - p0[2]) / 1000.0)
+    yline = np.arange(p0[1], p1[1], (p1[1] - p0[1]) / 1000.0)
+    xline = np.arange(p0[0], p1[0], (p1[0] - p0[0]) / 1000.0)
+    return xline, yline, zline
+
+
+def plot(p_start, p_end, p_rect, question, path=None, show=False, save=''):
     fig = plt.figure(figsize=(9.6, 7.2))
     ax = fig.add_subplot(111, projection='3d')
 
@@ -17,14 +26,34 @@ def plot(p_start, p_end, p_rect, path=None, show=False, save=''):
     ax.scatter(coord_rect_h[0], coord_rect_h[1], coord_rect_h[2], marker='.', c='y', label='Rectifying points (H)')
 
     if path is not None:
-        cnt_path = len(path)
-        for i in range(cnt_path-1):
-            p0 = path[i].cl.pos
-            p1 = path[i+1].cl.pos
-            zline = np.arange(p0[2], p1[2], (p1[2] - p0[2]) / 1000.0)
-            yline = np.arange(p0[1], p1[1], (p1[1] - p0[1]) / 1000.0)
-            xline = np.arange(p0[0], p1[0], (p1[0] - p0[0]) / 1000.0)
-            ax.plot3D(xline[0:1000], yline[0:1000], zline[0:1000], 'black')
+        if question != 2:
+            cnt_path = len(path)
+            for i in range(cnt_path - 1):
+                p0 = path[i].cl.pos
+                p1 = path[i + 1].cl.pos
+                xline, yline, zline = linePathGen(p0, p1)
+                ax.plot3D(xline[0:1000], yline[0:1000], zline[0:1000], 'black')
+        else:
+            cnt_path = len(path)
+            for i in range(cnt_path-1):
+                if i == 0:
+                    p0 = path[i].cl.pos
+                    p1 = path[i+1].cl.pos
+                    xline, yline, zline = linePathGen(p0, p1)
+                    ax.plot3D(xline[0:1000], yline[0:1000], zline[0:1000], 'black')
+                else:
+                    p0 = path[i-1].cl.pos
+                    p1 = path[i].cl.pos
+                    p2 = path[i+1].cl.pos
+                    distance, pos_circle, pos_tang, angle = computeDistance(p0, p1, p2)
+                    if angle == 0:
+                        xline, yline, zline = linePathGen(p1, p2)
+                        ax.plot3D(xline, yline, zline, 'black')
+                    else:
+                        xline, yline, zline = pathDataGen(p1, pos_tang, pos_circle, angle)
+                        ax.plot3D(xline, yline, zline, 'r')
+                        xline, yline, zline = linePathGen(pos_tang, p2)
+                        ax.plot3D(xline[0:1000], yline[0:1000], zline[0:1000], 'black')
 
     ax.legend(loc='best')
     ax.set_xlabel('X')

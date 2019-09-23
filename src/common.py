@@ -67,7 +67,7 @@ def cal_distance(point, point2, prev_point, useCurve):
         if prev_point == None:
             return_value = np.linalg.norm(point.pos - point2.pos)
         else:
-            return_value = curves.computeDistance(prev_point, point, point2)
+            return_value,_,_,_ = curves.computeDistance(prev_point.pos, point.pos, point2.pos)
     else:
         return_value = np.linalg.norm(point.pos - point2.pos)
     return return_value
