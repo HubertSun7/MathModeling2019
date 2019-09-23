@@ -29,7 +29,6 @@ def question1(p_start, p_end, p_rect, av_param, a_star_factor, w1, w2):
     # Output the path
     refPath = []
 
-    f = open("../out/test.csv", "w+")
 
     print("{:>5}\t{:>18},{:>18},{:>18}\t{:>20}\t{:>20}\t{:>20}\t{:>4}\t{:>5}" \
           .format("idx", "x", "y", "z", "length", "errorVert", "errorHori", "type", "rate"))
@@ -44,12 +43,8 @@ def question1(p_start, p_end, p_rect, av_param, a_star_factor, w1, w2):
                       str(path_f_max[1][0]),
                       str(1) if path[i].cl.rectVert == common.NodeType.Vertical else str(0),
                       path[i].s_p))
-        tmp_type = str(1) if path[i].cl.rectVert == common.NodeType.Vertical else str(0)
-        f.write(str(path[i].cl.idx)+","+str(path_f_max[1][1])+","+str(path_f_max[1][0])+","+
-                tmp_type + "\n")
         refPath.append(str(1) if path[i].cl.rectVert == common.NodeType.Vertical else str(0))
 
-    f.close()
     print("\n\nAstar Factor : " + str(a_star_factor))
     print("Total Nodes: " + str(len(path) - 1))
     print("Total Length: " + str(path[-1].d))
